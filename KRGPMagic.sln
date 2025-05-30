@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35818.85 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KRGPMagic", "KRGPMagic\KRGPMagic.csproj", "{2946638A-EE81-4CB6-80BA-0F798F46270F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplePlugin", "SamplePlugin\SamplePlugin.csproj", "{8E37471C-3D22-4BB9-8F44-544EBD8D926B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2946638A-EE81-4CB6-80BA-0F798F46270F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2946638A-EE81-4CB6-80BA-0F798F46270F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2946638A-EE81-4CB6-80BA-0F798F46270F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2946638A-EE81-4CB6-80BA-0F798F46270F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {30F3ABF9-A767-49E0-A69A-CEBBF28D385C}
+	EndGlobalSection
+EndGlobal
