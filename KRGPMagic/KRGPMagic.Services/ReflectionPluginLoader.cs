@@ -50,7 +50,7 @@ namespace KRGPMagic.Services
                 if (typeof(IPlugin).IsAssignableFrom(commandType))
                 {
                     var pluginInstance = (IPlugin)Activator.CreateInstance(commandType);
-                    pluginInstance.Info = pluginInfo;
+                    pluginInstance.Info = pluginInfo; // Это важно, чтобы IPlugin.Info было установлено
                     pluginInstance.IsEnabled = pluginInfo.Enabled;
                     return pluginInstance;
                 }

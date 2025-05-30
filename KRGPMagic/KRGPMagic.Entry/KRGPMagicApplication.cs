@@ -19,6 +19,13 @@ namespace KRGPMagic.Entry
 
         #endregion
 
+        #region Public Static Properties
+
+        // Базовый путь к директории, где находится KRGPMagic.dll и папка Config.
+        public static string KRGPMagicBasePath { get; private set; }
+
+        #endregion
+
         #region IExternalApplication Implementation
 
         /// <summary>
@@ -32,6 +39,7 @@ namespace KRGPMagic.Entry
             {
                 // _basePath теперь указывает на директорию, где лежит KRGPMagic.dll
                 _basePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                KRGPMagicBasePath = _basePath;
 
                 InitializeServices();
                 LoadPluginsAndCreateUI(application);

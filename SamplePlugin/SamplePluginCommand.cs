@@ -76,7 +76,7 @@ namespace KRGPMagic.Plugins.SamplePlugin
                     pluginDescription = pluginInterface.Info.Description;
                 }
 
-                TaskDialog.Show(pluginName, $"Плагин '{pluginName}' (v{pluginVersion}) успешно выполнен!\nОписание: {pluginDescription}");
+                TaskDialog.Show(pluginName, $"Плагин '{pluginName}' (v{pluginVersion}) успешно выполнен!");
                 return Result.Succeeded;
             }
             catch (Exception ex)

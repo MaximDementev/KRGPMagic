@@ -1,89 +1,74 @@
 ﻿using Autodesk.Revit.UI;
 using KRGPMagic.Core.Interfaces;
-using KRGPMagic.Core.Models; // Для PluginInfo
+using KRGPMagic.Core.Models;
 using System;
 using System.Collections.Generic;
-using System.Configuration.Assemblies;
-using System.IO; // Для Path
+using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows.Media.Imaging; // Для Assembly
+using System.Windows.Media.Imaging;
 
 namespace KRGPMagic.Services
 {
-    /// <summary>
-    /// Реализация <see cref="IPluginManager"/>.
-    /// Управляет загрузкой, инициализацией плагинов и созданием их UI.
-    /// </summary>
+    // Управляет загрузкой, инициализацией плагинов и созданием их UI.
     public class PluginManager : IPluginManager
     {
         #region Fields
 
         private readonly IConfigurationReader _configurationReader;
         private readonly IPluginLoader _pluginLoader;
-        private readonly List<IPlugin> _loadedPlugins; // Хранит экземпляры плагинов, реализующих IPlugin
-        private readonly List<PluginInfo> _allPluginInfos; // Хранит информацию обо всех плагинах из XML
+        private PluginConfiguration _pluginConfiguration; // Хранит всю конфигурацию
+        private readonly List<IPlugin> _loadedPlugins;
+        private string _krgpMagicBasePath;
+        // Словарь для хранения созданных PulldownButton: Key = "TabName_PanelName_PulldownName"
+        private readonly Dictionary<string, PulldownButton> _createdPulldownButtons;
 
         #endregion
 
         #region Constructor
 
-        /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="PluginManager"/>.
-        /// </summary>
-        /// <param name="configurationReader">Сервис для чтения конфигурации.</param>
-        /// <param name="pluginLoader">Сервис для загрузки плагинов.</param>
         public PluginManager(IConfigurationReader configurationReader, IPluginLoader pluginLoader)
         {
             _configurationReader = configurationReader ?? throw new ArgumentNullException(nameof(configurationReader));
             _pluginLoader = pluginLoader ?? throw new ArgumentNullException(nameof(pluginLoader));
             _loadedPlugins = new List<IPlugin>();
-            _allPluginInfos = new List<PluginInfo>();
+            _createdPulldownButtons = new Dictionary<string, PulldownButton>();
         }
 
         #endregion
 
         #region IPluginManager Implementation
 
-        /// <summary>
-        /// Получает коллекцию загруженных плагинов, реализующих IPlugin.
-        /// </summary>
         public IReadOnlyCollection<IPlugin> LoadedPlugins => _loadedPlugins.AsReadOnly();
 
-        /// <summary>
-        /// Загружает информацию о плагинах из конфигурации и загружает сами плагины (если они реализуют IPlugin).
-        /// </summary>
-        /// <param name="configurationPath">Путь к файлу конфигурации.</param>
-        /// <param name="basePath">Базовый путь для разрешения относительных путей сборок.</param>
-        public void LoadPlugins(string configurationPath, string basePath)
+        // Загружает конфигурацию и экземпляры плагинов.
+        public void LoadPlugins(string configurationPath, string krgpMagicBasePath)
         {
             if (string.IsNullOrWhiteSpace(configurationPath))
                 throw new ArgumentException("Путь к файлу конфигурации не может быть пустым.", nameof(configurationPath));
-            if (string.IsNullOrWhiteSpace(basePath))
-                throw new ArgumentException("Базовый путь не может быть пустым.", nameof(basePath));
+            if (string.IsNullOrWhiteSpace(krgpMagicBasePath))
+                throw new ArgumentException("Базовый путь KRGPMagic не может быть пустым.", nameof(krgpMagicBasePath));
+
+            _krgpMagicBasePath = krgpMagicBasePath;
 
             try
             {
-                var configuration = _configurationReader.ReadConfiguration(configurationPath);
-                _allPluginInfos.Clear();
-                _allPluginInfos.AddRange(configuration.Plugins);
+                _pluginConfiguration = _configurationReader.ReadConfiguration(configurationPath);
 
                 _loadedPlugins.Clear();
-                // Загружаем только те плагины, которые реализуют IPlugin и предназначены для загрузки
-                foreach (var pluginInfo in _allPluginInfos.Where(pi => pi.Enabled && pi.LoadOnStartup))
+                foreach (var pluginInfo in _pluginConfiguration.Plugins.Where(pi => pi.Enabled && pi.LoadOnStartup))
                 {
                     try
                     {
-                        IPlugin pluginInstance = _pluginLoader.LoadPlugin(pluginInfo, basePath);
-                        if (pluginInstance != null) // LoadPlugin вернет null, если класс не реализует IPlugin или плагин отключен
+                        IPlugin pluginInstance = _pluginLoader.LoadPlugin(pluginInfo, _krgpMagicBasePath);
+                        if (pluginInstance != null)
                         {
                             _loadedPlugins.Add(pluginInstance);
                         }
                     }
                     catch (Exception ex)
                     {
-                        TaskDialog.Show("Plugin Load Error", $"Ошибка при попытке загрузить экземпляр плагина '{pluginInfo.Name}': {ex.Message}");
-                        // Продолжаем загрузку других плагинов
+                        TaskDialog.Show("Plugin Load Error", $"Ошибка при загрузке экземпляра плагина '{pluginInfo.Name}': {ex.Message}");
                     }
                 }
             }
@@ -93,21 +78,22 @@ namespace KRGPMagic.Services
             }
         }
 
-        /// <summary>
-        /// Инициализирует загруженные плагины (вызывает их метод Initialize)
-        /// и создает элементы UI для всех сконфигурированных и активных плагинов.
-        /// </summary>
-        /// <param name="application">Контролируемое приложение Revit UI.</param>
+        // Инициализирует плагины и создает UI.
         public void InitializePluginsAndCreateUI(UIControlledApplication application)
         {
             if (application == null) throw new ArgumentNullException(nameof(application));
+            if (_pluginConfiguration == null)
+            {
+                TaskDialog.Show("Plugin UI Error", "Конфигурация плагинов не загружена.");
+                return;
+            }
 
-            // Сначала инициализируем плагины, реализующие IPlugin
-            foreach (var plugin in _loadedPlugins) // _loadedPlugins уже отфильтрованы по Enabled и LoadOnStartup
+            // 1. Инициализация загруженных IPlugin экземпляров
+            foreach (var plugin in _loadedPlugins)
             {
                 try
                 {
-                    plugin.Initialize(); // Вызываем Initialize без параметров
+                    plugin.Initialize();
                 }
                 catch (Exception ex)
                 {
@@ -115,23 +101,68 @@ namespace KRGPMagic.Services
                 }
             }
 
-            // Затем создаем UI для всех плагинов, которые должны быть отображены при старте
-            foreach (var pluginInfo in _allPluginInfos.Where(pi => pi.Enabled && pi.LoadOnStartup))
+            // 2. Группировка всех UI элементов по вкладкам и панелям
+            var uiElementsByPanel = _pluginConfiguration.PulldownButtonDefinitions
+                .Cast<object>() // Приводим к общему типу для объединения
+                .Concat(_pluginConfiguration.Plugins.Cast<object>())
+                .Where(item =>
+                { // Фильтруем только активные и загружаемые при старте плагины
+                    if (item is PluginInfo pi) return pi.Enabled && pi.LoadOnStartup;
+                    return true; // PulldownButtonDefinitions всегда обрабатываем
+                })
+                .GroupBy(item =>
+                {
+                    if (item is PulldownButtonDefinitionInfo pbd) return new { Tab = pbd.RibbonTab, Panel = pbd.RibbonPanel };
+                    if (item is PluginInfo pi) return new { Tab = pi.RibbonTab, Panel = pi.RibbonPanel };
+                    return null;
+                })
+                .Where(g => g.Key != null);
+
+            foreach (var panelGroup in uiElementsByPanel)
             {
-                try
+                var tabName = panelGroup.Key.Tab;
+                var panelName = panelGroup.Key.Panel;
+                RibbonPanel ribbonPanel = GetOrCreateRibbonPanel(application, tabName, panelName);
+
+                // 2.1 Создаем все определенные PulldownButton для текущей панели
+                foreach (var pbdInfo in panelGroup.OfType<PulldownButtonDefinitionInfo>())
                 {
-                    CreatePluginUI(application, pluginInfo);
+                    CreateActualPulldownButton(ribbonPanel, pbdInfo);
                 }
-                catch (Exception ex)
+
+                // 2.2 Добавляем плагины (PushButton/SplitButton) либо в PulldownButton, либо напрямую на панель
+                foreach (var pluginInfo in panelGroup.OfType<PluginInfo>())
                 {
-                    TaskDialog.Show("Plugin UI Creation Error", $"Ошибка при создании UI для плагина '{pluginInfo.Name}': {ex.Message}");
+                    string pluginAssemblyFullPath = Path.Combine(_krgpMagicBasePath, pluginInfo.AssemblyPath);
+                    string pluginAssemblyDir = Path.GetDirectoryName(pluginAssemblyFullPath);
+
+                    if (!File.Exists(pluginAssemblyFullPath))
+                    {
+                        TaskDialog.Show("Plugin UI Error", $"Сборка не найдена для плагина '{pluginInfo.Name}': {pluginAssemblyFullPath}");
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(pluginInfo.PulldownGroupName))
+                    {
+                        string pulldownKey = GeneratePulldownKey(tabName, panelName, pluginInfo.PulldownGroupName);
+                        if (_createdPulldownButtons.TryGetValue(pulldownKey, out PulldownButton pulldownButton))
+                        {
+                            AddItemToPulldownButton(pulldownButton, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+                        }
+                        else
+                        {
+                            TaskDialog.Show("Plugin UI Error", $"PulldownButton '{pluginInfo.PulldownGroupName}' не определен или не создан на панели '{panelName}'. Плагин '{pluginInfo.Name}' не будет добавлен.");
+                        }
+                    }
+                    else // Добавляем напрямую на панель
+                    {
+                        AddItemToPanel(ribbonPanel, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+                    }
                 }
             }
         }
 
-        /// <summary>
-        /// Выполняет процедуру завершения работы для всех загруженных плагинов (реализующих IPlugin).
-        /// </summary>
+        // Завершение работы плагинов.
         public void ShutdownPlugins()
         {
             foreach (var plugin in _loadedPlugins)
@@ -146,90 +177,206 @@ namespace KRGPMagic.Services
                 }
             }
             _loadedPlugins.Clear();
-            _allPluginInfos.Clear();
+            _createdPulldownButtons.Clear();
+            _pluginConfiguration = null;
         }
 
         #endregion
 
-        #region Private Helper Methods
+        #region Private UI Creation Methods
 
-        /// <summary>
-        /// Создает элементы пользовательского интерфейса для указанного плагина.
-        /// </summary>
-        /// <param name="application">Контролируемое приложение Revit UI.</param>
-        /// <param name="pluginInfo">Конфигурационная информация о плагине.</param>
-        private void CreatePluginUI(UIControlledApplication application, PluginInfo pluginInfo)
+        // Генерирует ключ для словаря _createdPulldownButtons.
+        private string GeneratePulldownKey(string tabName, string panelName, string pulldownName)
         {
-            RibbonPanel ribbonPanel = GetOrCreateRibbonPanel(application, pluginInfo.RibbonTab, pluginInfo.RibbonPanel);
+            return $"{tabName}_{panelName}_{pulldownName}";
+        }
 
-            // Путь к сборке плагина, где находится класс команды
-            string assemblyLocation = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), // Базовый путь KRGPMagic.dll
-                pluginInfo.AssemblyPath
+        // Создает и регистрирует PulldownButton.
+        private void CreateActualPulldownButton(RibbonPanel ribbonPanel, PulldownButtonDefinitionInfo pbdInfo)
+        {
+            string pulldownKey = GeneratePulldownKey(pbdInfo.RibbonTab, pbdInfo.RibbonPanel, pbdInfo.Name);
+            if (_createdPulldownButtons.ContainsKey(pulldownKey)) return; // Уже создан
+
+            var pulldownButtonData = new PulldownButtonData(
+                name: $"cmd_pulldown_{pbdInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                text: pbdInfo.DisplayName
             );
 
-            if (!File.Exists(assemblyLocation))
+            if (!string.IsNullOrEmpty(pbdInfo.Description))
             {
-                TaskDialog.Show("Plugin UI Error", $"Не найдена сборка для плагина '{pluginInfo.Name}' по пути: {assemblyLocation}");
-                return;
+                pulldownButtonData.ToolTip = pbdInfo.Description;
             }
 
+            // Иконки для PulldownButton берутся относительно _krgpMagicBasePath
+            string largeIconPath = string.IsNullOrEmpty(pbdInfo.LargeIcon) ? null : Path.Combine(_krgpMagicBasePath, pbdInfo.LargeIcon);
+            string smallIconPath = string.IsNullOrEmpty(pbdInfo.SmallIcon) ? null : Path.Combine(_krgpMagicBasePath, pbdInfo.SmallIcon);
+
+            pulldownButtonData.LargeImage = LoadBitmapImage(largeIconPath);
+            pulldownButtonData.Image = LoadBitmapImage(smallIconPath);
+
+            var pulldownButton = ribbonPanel.AddItem(pulldownButtonData) as PulldownButton;
+            if (pulldownButton != null)
+            {
+                _createdPulldownButtons[pulldownKey] = pulldownButton;
+            }
+            else
+            {
+                TaskDialog.Show("Plugin UI Error", $"Не удалось создать PulldownButton '{pbdInfo.DisplayName}'.");
+            }
+        }
+
+        // Добавляет элемент (PushButton или SplitButton) на панель.
+        private void AddItemToPanel(RibbonPanel ribbonPanel, PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
+        {
+            if (pluginInfo.UIType == PluginInfo.ButtonUIType.SplitButton)
+            {
+                CreateSplitButtonOnPanel(ribbonPanel, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+            }
+            else
+            {
+                CreatePushButtonOnPanel(ribbonPanel, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+            }
+        }
+
+        // Добавляет элемент (PushButton или SplitButton) в PulldownButton.
+        private void AddItemToPulldownButton(PulldownButton pulldownButton, PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
+        {
+            if (pluginInfo.UIType == PluginInfo.ButtonUIType.SplitButton)
+            {
+                // Если это SplitButton, каждая его подкоманда становится отдельным PushButton в PulldownButton.
+                // "Лицо" SplitButton (pluginInfo.DisplayName) может быть добавлено как PushButton,
+                // если у него есть ClassName и он должен выполнять действие.
+                if (!string.IsNullOrEmpty(pluginInfo.ClassName))
+                {
+                    // Создаем PushButton для "лица" SplitButton, если оно кликабельно
+                    var mainPushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir); // Используем DisplayName, ClassName, Icons из PluginInfo
+                    pulldownButton.AddPushButton(mainPushButtonData);
+                    // Можно добавить сепаратор, если есть подкоманды
+                    if (pluginInfo.SubCommands.Any()) pulldownButton.AddSeparator();
+                }
+
+                foreach (var subCommandInfo in pluginInfo.SubCommands)
+                {
+                    var subPushButtonData = new PushButtonData(
+                        name: $"cmd_sub_pd_{subCommandInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                        text: subCommandInfo.DisplayName,
+                        assemblyName: pluginAssemblyFullPath,
+                        className: subCommandInfo.ClassName
+                    );
+                    if (!string.IsNullOrEmpty(subCommandInfo.Description)) subPushButtonData.ToolTip = subCommandInfo.Description;
+
+                    string subLargeIconPath = string.IsNullOrEmpty(subCommandInfo.LargeIcon) ? null : Path.Combine(pluginAssemblyDir, subCommandInfo.LargeIcon);
+                    string subSmallIconPath = string.IsNullOrEmpty(subCommandInfo.SmallIcon) ? null : Path.Combine(pluginAssemblyDir, subCommandInfo.SmallIcon);
+                    subPushButtonData.LargeImage = LoadBitmapImage(subLargeIconPath);
+                    subPushButtonData.Image = LoadBitmapImage(subSmallIconPath);
+
+                    pulldownButton.AddPushButton(subPushButtonData);
+                }
+            }
+            else // Это обычный PushButton
+            {
+                var pushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+                pulldownButton.AddPushButton(pushButtonData);
+            }
+        }
+
+        // Подготавливает PushButtonData.
+        private PushButtonData PreparePushButtonData(PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
+        {
             var pushButtonData = new PushButtonData(
-                name: $"cmd_{pluginInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                name: $"cmd_pb_{pluginInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
                 text: pluginInfo.DisplayName,
-                assemblyName: assemblyLocation, // Путь к DLL плагина
-                className: pluginInfo.ClassName  // Класс, реализующий IExternalCommand
+                assemblyName: pluginAssemblyFullPath,
+                className: pluginInfo.ClassName
             );
-            try
-            {
-                pushButtonData.LargeImage = LoadIcon(GetIconPath(pluginInfo, false));
-                pushButtonData.Image = LoadIcon(GetIconPath(pluginInfo, true));
-            }
-            catch (Exception) { }
+            if (!string.IsNullOrEmpty(pluginInfo.Description)) pushButtonData.ToolTip = pluginInfo.Description;
 
+            string largeIconPath = string.IsNullOrEmpty(pluginInfo.LargeIcon) ? null : Path.Combine(pluginAssemblyDir, pluginInfo.LargeIcon);
+            string smallIconPath = string.IsNullOrEmpty(pluginInfo.SmallIcon) ? null : Path.Combine(pluginAssemblyDir, pluginInfo.SmallIcon);
+            pushButtonData.LargeImage = LoadBitmapImage(largeIconPath);
+            pushButtonData.Image = LoadBitmapImage(smallIconPath);
+            return pushButtonData;
+        }
+
+        // Создает PushButton на панели.
+        private void CreatePushButtonOnPanel(RibbonPanel ribbonPanel, PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
+        {
+            var pushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
             ribbonPanel.AddItem(pushButtonData);
         }
 
-        private BitmapImage LoadIcon(string path)
+        // Подготавливает SplitButtonData и его дочерние элементы.
+        private SplitButtonData PrepareSplitButtonData(PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
         {
-            try
+            var splitButtonData = new SplitButtonData(
+                 name: $"cmd_sb_{pluginInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                 text: pluginInfo.DisplayName
+            );
+            if (!string.IsNullOrEmpty(pluginInfo.Description)) splitButtonData.ToolTip = pluginInfo.Description;
+
+            string largeIconPath = string.IsNullOrEmpty(pluginInfo.LargeIcon) ? null : Path.Combine(pluginAssemblyDir, pluginInfo.LargeIcon);
+            // Revit API не использует SmallIcon для SplitButtonData напрямую, но может для первой кнопки, если она становится "лицом"
+            splitButtonData.LargeImage = LoadBitmapImage(largeIconPath);
+
+            return splitButtonData; // Возвращаем только данные, наполнение будет в вызывающем методе, если это панель.
+        }
+
+        // Создает SplitButton на панели и наполняет его подкомандами.
+        private void CreateSplitButtonOnPanel(RibbonPanel ribbonPanel, PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
+        {
+            var splitButtonData = PrepareSplitButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+            SplitButton splitButton = ribbonPanel.AddItem(splitButtonData) as SplitButton;
+
+            if (splitButton != null)
             {
-                if (File.Exists(path))
+                foreach (var subCommandInfo in pluginInfo.SubCommands)
                 {
-                    return new BitmapImage(new Uri(path));
+                    var subPushButtonData = new PushButtonData(
+                        name: $"cmd_sub_{subCommandInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                        text: subCommandInfo.DisplayName,
+                        assemblyName: pluginAssemblyFullPath,
+                        className: subCommandInfo.ClassName
+                    );
+                    if (!string.IsNullOrEmpty(subCommandInfo.Description)) subPushButtonData.ToolTip = subCommandInfo.Description;
+
+                    string subLargeIconPath = string.IsNullOrEmpty(subCommandInfo.LargeIcon) ? null : Path.Combine(pluginAssemblyDir, subCommandInfo.LargeIcon);
+                    string subSmallIconPath = string.IsNullOrEmpty(subCommandInfo.SmallIcon) ? null : Path.Combine(pluginAssemblyDir, subCommandInfo.SmallIcon);
+                    subPushButtonData.LargeImage = LoadBitmapImage(subLargeIconPath);
+                    subPushButtonData.Image = LoadBitmapImage(subSmallIconPath);
+
+                    splitButton.AddPushButton(subPushButtonData);
                 }
             }
-            catch (Exception) { }
-            return null;
+            else
+            {
+                TaskDialog.Show("Plugin UI Error", $"Не удалось создать SplitButton '{pluginInfo.DisplayName}' на панели.");
+            }
         }
 
-        private string GetIconPath(PluginInfo pluginInfo, bool isSmall)
+        // Загружает BitmapImage.
+        private BitmapImage LoadBitmapImage(string fullPath)
         {
-            string iconName = isSmall ? $"Image_small.png" : $"Image.png";
-            string directory = Path.GetDirectoryName(Path.GetFullPath(pluginInfo.AssemblyPath));
-            string path = Path.Combine(directory, iconName);
-            return path;
-        }
-
-        /// <summary>
-        /// Получает существующую панель на ленте или создает новую, если она не существует.
-        /// Также создает вкладку, если она не существует.
-        /// </summary>
-        private RibbonPanel GetOrCreateRibbonPanel(UIControlledApplication application, string tabName, string panelName)
-        {
+            if (string.IsNullOrEmpty(fullPath) || !File.Exists(fullPath)) return null;
             try
             {
-                application.CreateRibbonTab(tabName);
+                return new BitmapImage(new Uri(fullPath, UriKind.Absolute));
             }
-            catch (Exception) { }
-            // Ищем существующую панель
-            var panels = application.GetRibbonPanels(tabName);
-            var existingPanel = panels.FirstOrDefault(p => p.Name == panelName);
+            catch { return null; }
+        }
 
-            if (existingPanel != null)
-                return existingPanel;
+        // Получает или создает RibbonPanel.
+        private RibbonPanel GetOrCreateRibbonPanel(UIControlledApplication application, string tabName, string panelName)
+        {
+            RibbonPanel panel = null;
+            try { panel = application.GetRibbonPanels(tabName).FirstOrDefault(p => p.Name.Equals(panelName, StringComparison.OrdinalIgnoreCase)); }
+            catch { /* Вкладка может не существовать */ }
 
-            // Создаем новую панель
+            if (panel != null) return panel;
+
+            try { application.CreateRibbonTab(tabName); }
+            catch (Autodesk.Revit.Exceptions.ArgumentException ex) when (ex.Message.ToLower().Contains("already exist")) { /* Игнорируем */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Ошибка при создании вкладки '{tabName}': {ex.Message}"); }
+
             return application.CreateRibbonPanel(tabName, panelName);
         }
 

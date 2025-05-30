@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35818.85 d17.13
+VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KRGPMagic", "KRGPMagic\KRGPMagic.csproj", "{2946638A-EE81-4CB6-80BA-0F798F46270F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SamplePlugin", "SamplePlugin\SamplePlugin.csproj", "{8E37471C-3D22-4BB9-8F44-544EBD8D926B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiTool", "MultiTool\MultiTool.csproj", "{FCA4F1B9-08DA-4315-98D2-D1074538EAB7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KRGPMagic.SchemaEditor", "KRGPMagic.SchemaEditor\KRGPMagic.SchemaEditor.csproj", "{7E1B62D7-D540-4838-B555-7FA16D3379CB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E37471C-3D22-4BB9-8F44-544EBD8D926B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCA4F1B9-08DA-4315-98D2-D1074538EAB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCA4F1B9-08DA-4315-98D2-D1074538EAB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCA4F1B9-08DA-4315-98D2-D1074538EAB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCA4F1B9-08DA-4315-98D2-D1074538EAB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E1B62D7-D540-4838-B555-7FA16D3379CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E1B62D7-D540-4838-B555-7FA16D3379CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E1B62D7-D540-4838-B555-7FA16D3379CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E1B62D7-D540-4838-B555-7FA16D3379CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
