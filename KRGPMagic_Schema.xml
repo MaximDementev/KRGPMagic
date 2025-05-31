@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<KRGPMagicConfiguration>
+  <Plugins>
+    <Plugin>
+      <Name>SchemaEditorPlugin</Name>
+      <Enabled>true</Enabled>
+      <UIType>PushButton</UIType>
+      <Version>1.0.0</Version>
+      <AssemblyPath>KRGPMagic.Plugins\SchemaEditor\KRGPMagic.SchemaEditor.dll</AssemblyPath>
+      <ClassName>KRGPMagic.SchemaEditor.SchemaEditorCommand</ClassName>
+      <DisplayName>Редактор Схемы</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Администрирование</RibbonPanel>
+      <Description>Открывает редактор для файла KRGPMagic_Schema.xml.</Description>
+      <LargeIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\SchemaEditor\Icons\SchemaEditor_32.png</LargeIcon>
+      <SmallIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\SchemaEditor\Icons\SchemaEditor_16.png</SmallIcon>
+      <LoadOnStartup>true</LoadOnStartup>
+      <SubCommands />
+    </Plugin>
+    <Plugin>
+      <Name>SamplePluginInPulldown</Name>
+      <Enabled>true</Enabled>
+      <UIType>PushButton</UIType>
+      <Version>1.0.4</Version>
+      <AssemblyPath>KRGPMagic.Plugins\SamplePlugin\SamplePlugin.dll</AssemblyPath>
+      <ClassName>KRGPMagic.Plugins.SamplePlugin.SamplePluginCommand</ClassName>
+      <DisplayName>Образец в Pulldown</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Основные Инструменты</RibbonPanel>
+      <Description>Это PushButton внутри PulldownButton 'Общие Утилиты'.</Description>
+      <LargeIcon>Icons/SampleIcon_32.png</LargeIcon>
+      <SmallIcon>Icons/SampleIcon_16.png</SmallIcon>
+      <LoadOnStartup>true</LoadOnStartup>
+      <PulldownGroupName />
+      <SubCommands />
+    </Plugin>
+    <Plugin>
+      <Name>MultiToolInPulldown</Name>
+      <Enabled>true</Enabled>
+      <UIType>SplitButton</UIType>
+      <Version>1.1.1</Version>
+      <AssemblyPath>KRGPMagic.Plugins\MultiTool\MultiTool.dll</AssemblyPath>
+      <DisplayName>Инструменты в Pulldown</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Основные Инструменты</RibbonPanel>
+      <Description>Это SplitButton внутри PulldownButton 'Общие Утилиты'.</Description>
+      <LargeIcon>Icons/MultiTool_32.png</LargeIcon>
+      <SmallIcon>Icons/MultiTool_16.png</SmallIcon>
+      <LoadOnStartup>true</LoadOnStartup>
+      <PulldownGroupName />
+      <SubCommands>
+        <Command>
+          <Name>ToolA</Name>
+          <ClassName>KRGPMagic.Plugins.MultiTool.ToolACommand</ClassName>
+          <DisplayName>Инструмент А</DisplayName>
+          <LargeIcon>Icons/ToolA_32.png</LargeIcon>
+          <SmallIcon>Icons/ToolA_16.png</SmallIcon>
+        </Command>
+        <Command>
+          <Name>ToolB</Name>
+          <ClassName>KRGPMagic.Plugins.MultiTool.ToolBCommand</ClassName>
+          <DisplayName>Инструмент Б</DisplayName>
+          <LargeIcon>Icons/ToolB_32.png</LargeIcon>
+          <SmallIcon>Icons/ToolB_16.png</SmallIcon>
+        </Command>
+      </SubCommands>
+    </Plugin>
+    <Plugin>
+      <Name>StandaloneTool</Name>
+      <Enabled>false</Enabled>
+      <UIType>PushButton</UIType>
+      <Version>1.0.0</Version>
+      <AssemblyPath>KRGPMagic.Plugins\SamplePlugin\SamplePlugin.dll</AssemblyPath>
+      <ClassName>KRGPMagic.Plugins.SamplePlugin.SamplePluginCommand</ClassName>
+      <DisplayName>Автономная Кнопка</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Дополнительные Инструменты</RibbonPanel>
+      <Description>Это автономная кнопка.</Description>
+      <LargeIcon>Icons/Standalone_32.png</LargeIcon>
+      <SmallIcon>Icons/Standalone_16.png</SmallIcon>
+      <LoadOnStartup>true</LoadOnStartup>
+      <SubCommands />
+    </Plugin>
+    <Plugin>
+      <Name>HoleAutoJoinPlugin</Name>
+      <Enabled>false</Enabled>
+      <UIType>SplitButton</UIType>
+      <Version>1.0.0</Version>
+      <AssemblyPath>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\HoleAutoJoin.dll</AssemblyPath>
+      <ClassName>KRGPMagic.Plugins.HoleAutoJoin.JoinCommand</ClassName>
+      <DisplayName>Соединение Отверстий</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Отверстия</RibbonPanel>
+      <Description>Инструменты для автоматического и ручного соединения отверстий с их основами, а также настройки и справка.</Description>
+      <LargeIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\HoleAutoJoin_32.png</LargeIcon>
+      <SmallIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\HoleAutoJoin_16.png</SmallIcon>
+      <LoadOnStartup>true</LoadOnStartup>
+      <SubCommands>
+        <Command>
+          <Name>JoinHolesManual</Name>
+          <ClassName>KRGPMagic.Plugins.HoleAutoJoin.JoinCommand</ClassName>
+          <DisplayName>Соединить отверстия</DisplayName>
+          <Description>Ручное соединение всех квалифицированных отверстий с их элементами-основами.</Description>
+          <LargeIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\HoleAutoJoinIco_32.png</LargeIcon>
+          <SmallIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\HoleAutoJoinIco_16.png</SmallIcon>
+        </Command>
+        <Command>
+          <Name>HoleJoinSettings</Name>
+          <ClassName>KRGPMagic.Plugins.HoleAutoJoin.SettingsCommand</ClassName>
+          <DisplayName>Настройки соединения</DisplayName>
+          <Description>Открыть окно настроек для автоматического и ручного соединения отверстий.</Description>
+          <LargeIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\Settings_32.png</LargeIcon>
+          <SmallIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\Settings_16.png</SmallIcon>
+        </Command>
+        <Command>
+          <Name>HoleJoinHelp</Name>
+          <ClassName>KRGPMagic.Plugins.HoleAutoJoin.HelpCommand</ClassName>
+          <DisplayName>Справка по отверстиям</DisplayName>
+          <Description>Открыть окно справки со ссылками на инструкции по работе с отверстиями.</Description>
+          <LargeIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\Help_32.png</LargeIcon>
+          <SmallIcon>C:\ProgramData\Autodesk\Revit\Addins\2022\KRGPMagic\KRGPMagic.Plugins\HoleAutoJoin\Icons\Help_16.png</SmallIcon>
+        </Command>
+      </SubCommands>
+    </Plugin>
+  </Plugins>
+  <PulldownButtonDefinitions>
+    <PulldownButtonDefinition>
+      <Name>CommonUtils</Name>
+      <Enabled>false</Enabled>
+      <DisplayName>Общие Утилиты</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Основные Инструменты</RibbonPanel>
+      <Description>Набор общих утилит.</Description>
+      <LargeIcon>Icons/Pulldowns/Utils_32.png</LargeIcon>
+      <SmallIcon>Icons/Pulldowns/Utils_16.png</SmallIcon>
+    </PulldownButtonDefinition>
+    <PulldownButtonDefinition>
+      <Name>ReportingTools</Name>
+      <Enabled>false</Enabled>
+      <DisplayName>Отчеты</DisplayName>
+      <RibbonTab>KRGPMagic</RibbonTab>
+      <RibbonPanel>Дополнительные Инструменты</RibbonPanel>
+      <Description>Инструменты для генерации отчетов.</Description>
+      <LargeIcon>Icons/Pulldowns/Reports_32.png</LargeIcon>
+      <SmallIcon>Icons/Pulldowns/Reports_16.png</SmallIcon>
+    </PulldownButtonDefinition>
+  </PulldownButtonDefinitions>
+</KRGPMagicConfiguration>
