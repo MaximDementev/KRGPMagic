@@ -17,10 +17,9 @@ namespace KRGPMagic.Services
 
         private readonly IConfigurationReader _configurationReader;
         private readonly IPluginLoader _pluginLoader;
-        private PluginConfiguration _pluginConfiguration; // Хранит всю конфигурацию
+        private PluginConfiguration _pluginConfiguration;
         private readonly List<IPlugin> _loadedPlugins;
         private string _krgpMagicBasePath;
-        // Словарь для хранения созданных PulldownButton: Key = "TabName_PanelName_PulldownName"
         private readonly Dictionary<string, PulldownButton> _createdPulldownButtons;
 
         #endregion
@@ -88,7 +87,6 @@ namespace KRGPMagic.Services
                 return;
             }
 
-            // 1. Инициализация загруженных IPlugin экземпляров
             foreach (var plugin in _loadedPlugins)
             {
                 try
@@ -101,14 +99,14 @@ namespace KRGPMagic.Services
                 }
             }
 
-            // 2. Группировка всех UI элементов по вкладкам и панелям
             var uiElementsByPanel = _pluginConfiguration.PulldownButtonDefinitions
-                .Cast<object>() // Приводим к общему типу для объединения
+                .Where(pbd => pbd.Enabled) // Учитываем активность PulldownButton
+                .Cast<object>()
                 .Concat(_pluginConfiguration.Plugins.Cast<object>())
                 .Where(item =>
-                { // Фильтруем только активные и загружаемые при старте плагины
+                {
                     if (item is PluginInfo pi) return pi.Enabled && pi.LoadOnStartup;
-                    return true; // PulldownButtonDefinitions всегда обрабатываем
+                    return true;
                 })
                 .GroupBy(item =>
                 {
@@ -124,13 +122,12 @@ namespace KRGPMagic.Services
                 var panelName = panelGroup.Key.Panel;
                 RibbonPanel ribbonPanel = GetOrCreateRibbonPanel(application, tabName, panelName);
 
-                // 2.1 Создаем все определенные PulldownButton для текущей панели
-                foreach (var pbdInfo in panelGroup.OfType<PulldownButtonDefinitionInfo>())
+                // Создаем только активные PulldownButton
+                foreach (var pbdInfo in panelGroup.OfType<PulldownButtonDefinitionInfo>().Where(pbd => pbd.Enabled))
                 {
                     CreateActualPulldownButton(ribbonPanel, pbdInfo);
                 }
 
-                // 2.2 Добавляем плагины (PushButton/SplitButton) либо в PulldownButton, либо напрямую на панель
                 foreach (var pluginInfo in panelGroup.OfType<PluginInfo>())
                 {
                     string pluginAssemblyFullPath = Path.Combine(_krgpMagicBasePath, pluginInfo.AssemblyPath);
@@ -144,17 +141,29 @@ namespace KRGPMagic.Services
 
                     if (!string.IsNullOrEmpty(pluginInfo.PulldownGroupName))
                     {
-                        string pulldownKey = GeneratePulldownKey(tabName, panelName, pluginInfo.PulldownGroupName);
-                        if (_createdPulldownButtons.TryGetValue(pulldownKey, out PulldownButton pulldownButton))
+                        // Проверяем, что PulldownButton, к которому привязывается плагин, активен
+                        var targetPulldownDef = _pluginConfiguration.PulldownButtonDefinitions
+                            .FirstOrDefault(pbd => pbd.Name == pluginInfo.PulldownGroupName && pbd.RibbonTab == tabName && pbd.RibbonPanel == panelName);
+
+                        if (targetPulldownDef != null && targetPulldownDef.Enabled)
                         {
-                            AddItemToPulldownButton(pulldownButton, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+                            string pulldownKey = GeneratePulldownKey(tabName, panelName, pluginInfo.PulldownGroupName);
+                            if (_createdPulldownButtons.TryGetValue(pulldownKey, out PulldownButton pulldownButton))
+                            {
+                                AddItemToPulldownButton(pulldownButton, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
+                            }
+                            else
+                            {
+                                TaskDialog.Show("Plugin UI Warning", $"PulldownButton '{pluginInfo.PulldownGroupName}' определен, но не был создан (возможно, из-за ошибки). Плагин '{pluginInfo.Name}' не будет добавлен в него.");
+                            }
                         }
-                        else
+                        else if (targetPulldownDef == null)
                         {
-                            TaskDialog.Show("Plugin UI Error", $"PulldownButton '{pluginInfo.PulldownGroupName}' не определен или не создан на панели '{panelName}'. Плагин '{pluginInfo.Name}' не будет добавлен.");
+                            TaskDialog.Show("Plugin UI Warning", $"PulldownButton '{pluginInfo.PulldownGroupName}' не определен для панели '{panelName}'. Плагин '{pluginInfo.Name}' не будет добавлен.");
                         }
+                        // Если targetPulldownDef.Enabled == false, плагин просто не добавляется в него, сообщение не обязательно
                     }
-                    else // Добавляем напрямую на панель
+                    else
                     {
                         AddItemToPanel(ribbonPanel, pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
                     }
@@ -191,11 +200,13 @@ namespace KRGPMagic.Services
             return $"{tabName}_{panelName}_{pulldownName}";
         }
 
-        // Создает и регистрирует PulldownButton.
+        // Создает и регистрирует PulldownButton, если он активен.
         private void CreateActualPulldownButton(RibbonPanel ribbonPanel, PulldownButtonDefinitionInfo pbdInfo)
         {
+            if (!pbdInfo.Enabled) return; // Не создаем, если отключен
+
             string pulldownKey = GeneratePulldownKey(pbdInfo.RibbonTab, pbdInfo.RibbonPanel, pbdInfo.Name);
-            if (_createdPulldownButtons.ContainsKey(pulldownKey)) return; // Уже создан
+            if (_createdPulldownButtons.ContainsKey(pulldownKey)) return;
 
             var pulldownButtonData = new PulldownButtonData(
                 name: $"cmd_pulldown_{pbdInfo.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
@@ -207,7 +218,6 @@ namespace KRGPMagic.Services
                 pulldownButtonData.ToolTip = pbdInfo.Description;
             }
 
-            // Иконки для PulldownButton берутся относительно _krgpMagicBasePath
             string largeIconPath = string.IsNullOrEmpty(pbdInfo.LargeIcon) ? null : Path.Combine(_krgpMagicBasePath, pbdInfo.LargeIcon);
             string smallIconPath = string.IsNullOrEmpty(pbdInfo.SmallIcon) ? null : Path.Combine(_krgpMagicBasePath, pbdInfo.SmallIcon);
 
@@ -243,15 +253,10 @@ namespace KRGPMagic.Services
         {
             if (pluginInfo.UIType == PluginInfo.ButtonUIType.SplitButton)
             {
-                // Если это SplitButton, каждая его подкоманда становится отдельным PushButton в PulldownButton.
-                // "Лицо" SplitButton (pluginInfo.DisplayName) может быть добавлено как PushButton,
-                // если у него есть ClassName и он должен выполнять действие.
                 if (!string.IsNullOrEmpty(pluginInfo.ClassName))
                 {
-                    // Создаем PushButton для "лица" SplitButton, если оно кликабельно
-                    var mainPushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir); // Используем DisplayName, ClassName, Icons из PluginInfo
+                    var mainPushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
                     pulldownButton.AddPushButton(mainPushButtonData);
-                    // Можно добавить сепаратор, если есть подкоманды
                     if (pluginInfo.SubCommands.Any()) pulldownButton.AddSeparator();
                 }
 
@@ -273,7 +278,7 @@ namespace KRGPMagic.Services
                     pulldownButton.AddPushButton(subPushButtonData);
                 }
             }
-            else // Это обычный PushButton
+            else
             {
                 var pushButtonData = PreparePushButtonData(pluginInfo, pluginAssemblyFullPath, pluginAssemblyDir);
                 pulldownButton.AddPushButton(pushButtonData);
@@ -305,7 +310,7 @@ namespace KRGPMagic.Services
             ribbonPanel.AddItem(pushButtonData);
         }
 
-        // Подготавливает SplitButtonData и его дочерние элементы.
+        // Подготавливает SplitButtonData.
         private SplitButtonData PrepareSplitButtonData(PluginInfo pluginInfo, string pluginAssemblyFullPath, string pluginAssemblyDir)
         {
             var splitButtonData = new SplitButtonData(
@@ -315,10 +320,9 @@ namespace KRGPMagic.Services
             if (!string.IsNullOrEmpty(pluginInfo.Description)) splitButtonData.ToolTip = pluginInfo.Description;
 
             string largeIconPath = string.IsNullOrEmpty(pluginInfo.LargeIcon) ? null : Path.Combine(pluginAssemblyDir, pluginInfo.LargeIcon);
-            // Revit API не использует SmallIcon для SplitButtonData напрямую, но может для первой кнопки, если она становится "лицом"
             splitButtonData.LargeImage = LoadBitmapImage(largeIconPath);
 
-            return splitButtonData; // Возвращаем только данные, наполнение будет в вызывающем методе, если это панель.
+            return splitButtonData;
         }
 
         // Создает SplitButton на панели и наполняет его подкомандами.
