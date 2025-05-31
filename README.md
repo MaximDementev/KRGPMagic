@@ -70,5 +70,23 @@
 - Возможность быстро включать/отключать плагины и группы без перезапуска Revit.
 
 ---
+**KRGPMagic** облегчает развертывание и поддержку большого количества пользовательских команд в корпоративной среде Revit, делая процесс прозрачным и управляемым для BIM-координаторов и разработчиков.
 
-KRGPMagic/                   # Папка, указанная в KRGPMagic.addin │ ├── KRGPMagic.dll            # Главная сборка (из KRGPMagic.Entry.csproj) │ ├── KRGPMagic_Schema.xml     # Конфигурационный файл (копируется из Config/) │ └── KRGPMagic.Plugins/       # Папка для DLL отдельных плагинов и их ресурсов ├── SamplePlugin/ │   ├── SamplePlugin.dll │   └── Icons/ │       └── SampleIcon_16.png ├── MultiTool/ │   ├── MultiTool.dll │   └── Icons/ │       └── MultiTool_32.png └── SchemaEditor/ ├── KRGPMagic.SchemaEditor.dll └── Icons/ └── SchemaEditor_32.png
+## Структура папок
+
+KRGPMagic/                   # Папка, указанная в KRGPMagic.addin │ 
+├── KRGPMagic.dll            # Главная сборка (из KRGPMagic.Entry.csproj) 
+├── KRGPMagic_Schema.xml     # Конфигурационный файл (копируется из Config/) 
+└── KRGPMagic.Plugins/       # Папка для DLL отдельных плагинов и их ресурсов 
+      ├── SamplePlugin/
+        ├── SamplePlugin.dll  
+        └── Icons/
+          └── SampleIcon_16.png 
+      ├── MultiTool/
+        ├── MultiTool.dll
+        └── Icons/
+          └── MultiTool_32.png 
+      └── SchemaEditor/ 
+        ├── KRGPMagic.SchemaEditor.dll 
+        └── Icons/ 
+          └── SchemaEditor_32.png
