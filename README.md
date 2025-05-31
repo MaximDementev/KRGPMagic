@@ -79,14 +79,14 @@ KRGPMagic/                   # Папка, указанная в KRGPMagic.addin
 - ├── KRGPMagic_Schema.xml     # Конфигурационный файл (копируется из Config/)
 - └── KRGPMagic.Plugins/       # Папка для DLL отдельных плагинов и их ресурсов 
 -      ├── SamplePlugin/      
-       ├── SamplePlugin.dll  
-        └── Icons/
-          └── SampleIcon_16.png 
-      ├── MultiTool/
-        ├── MultiTool.dll
-        └── Icons/
-          └── MultiTool_32.png 
-      └── SchemaEditor/ 
-        ├── KRGPMagic.SchemaEditor.dll 
-        └── Icons/ 
-          └── SchemaEditor_32.png
+        ├── SamplePlugin.dll  
+         └── Icons/
+           └── SampleIcon_16.png 
+       ├── MultiTool/
+         ├── MultiTool.dll
+         └── Icons/
+           └── MultiTool_32.png 
+       └── SchemaEditor/ 
+         ├── KRGPMagic.SchemaEditor.dll 
+         └── Icons/ 
+           └── SchemaEditor_32.png
