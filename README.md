@@ -74,12 +74,12 @@
 
 ## Структура папок
 
-KRGPMagic/                   # Папка, указанная в KRGPMagic.addin │ 
+KRGPMagic/                   # Папка, указанная в KRGPMagic.addin
 ├── KRGPMagic.dll            # Главная сборка (из KRGPMagic.Entry.csproj) 
 ├── KRGPMagic_Schema.xml     # Конфигурационный файл (копируется из Config/) 
 └── KRGPMagic.Plugins/       # Папка для DLL отдельных плагинов и их ресурсов 
-      ├── SamplePlugin/
-        ├── SamplePlugin.dll  
+      ├── SamplePlugin/      
+       ├── SamplePlugin.dll  
         └── Icons/
           └── SampleIcon_16.png 
       ├── MultiTool/
