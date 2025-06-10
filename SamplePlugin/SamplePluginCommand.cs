@@ -1,21 +1,23 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using KRGPMagic.Core.Interfaces; // Для IPlugin
-using KRGPMagic.Core.Models;    // Для PluginInfo
+using KRGPMagic.Core.Interfaces;
+using KRGPMagic.Core.Models;
+using KRGPMagic.Core.Services;
 using System;
+using System.IO;
 
 namespace KRGPMagic.Plugins.SamplePlugin
 {
     /// <summary>
-    /// Пример плагина. Этот класс реализует <see cref="IExternalCommand"/> для выполнения основной логики
-    /// и опционально <see cref="IPlugin"/> для дополнительной инициализации/завершения, не связанной с UI.
+    /// Пример плагина, демонстрирующий использование централизованных сервисов KRGPMagic.
+    /// Показывает, как плагин может использовать сервисы для работы с путями, инициализацией и сборками.
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class SamplePluginCommand : IExternalCommand, IPlugin // Реализация IPlugin опциональна
+    public class SamplePluginCommand : IExternalCommand, IPlugin
     {
-        #region IPlugin Implementation (Опционально)
+        #region IPlugin Implementation
 
         /// <summary>
         /// Конфигурационная информация о плагине, устанавливается системой.
@@ -28,16 +30,39 @@ namespace KRGPMagic.Plugins.SamplePlugin
         public bool IsEnabled { get; set; }
 
         /// <summary>
-        /// Выполняет внутреннюю инициализацию плагина, если это необходимо.
-        /// Не должен создавать элементы UI.
+        /// Выполняет внутреннюю инициализацию плагина при загрузке системы.
+        /// Использует централизованные сервисы для подготовки рабочей среды.
         /// </summary>
         /// <returns>True, если инициализация успешна.</returns>
         public bool Initialize()
         {
-            // Здесь может быть логика, специфичная для плагина,
-            // например, подписка на события Revit или загрузка внутренних ресурсов.
-            // TaskDialog.Show(Info?.Name ?? "Sample Plugin", "Внутренняя инициализация SamplePluginCommand завершена.");
-            return true;
+            try
+            {
+                // Получаем сервисы из провайдера
+                var pathService = KRGPMagicServiceProvider.GetService<IPathService>();
+                var initService = KRGPMagicServiceProvider.GetService<IPluginInitializationService>();
+
+                if (pathService == null || initService == null)
+                    return false;
+
+                // Инициализируем плагин через сервис
+                var pluginName = Info?.Name ?? "SamplePlugin";
+                if (!initService.InitializePlugin(pluginName))
+                    return false;
+
+                // Создаем файл настроек плагина, если его нет
+                var settingsPath = pathService.GetPluginUserDataFilePath(pluginName, "settings.txt");
+                if (!File.Exists(settingsPath))
+                {
+                    File.WriteAllText(settingsPath, "SamplePlugin Settings\nInitialized: " + DateTime.Now);
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -45,8 +70,7 @@ namespace KRGPMagic.Plugins.SamplePlugin
         /// </summary>
         public void Shutdown()
         {
-            // Освобождение ресурсов, отписка от событий.
-            // TaskDialog.Show(Info?.Name ?? "Sample Plugin", "Завершение работы SamplePluginCommand.");
+            // Логика завершения работы плагина
         }
 
         #endregion
@@ -55,6 +79,7 @@ namespace KRGPMagic.Plugins.SamplePlugin
 
         /// <summary>
         /// Точка входа для выполнения команды плагина, вызывается при нажатии кнопки в Revit.
+        /// Демонстрирует использование централизованных сервисов.
         /// </summary>
         /// <param name="commandData">Данные, связанные с внешней командой.</param>
         /// <param name="message">Сообщение, которое может быть возвращено Revit в случае ошибки.</param>
@@ -64,19 +89,30 @@ namespace KRGPMagic.Plugins.SamplePlugin
         {
             try
             {
-                // Получаем информацию о плагине, если она была установлена (если класс реализует IPlugin)
-                string pluginName = "Sample Plugin";
-                string pluginVersion = "1.0.2";
-                string pluginDescription = "Описание не доступно.";
+                // Получаем сервисы
+                var pathService = KRGPMagicServiceProvider.GetService<IPathService>();
+                var initService = KRGPMagicServiceProvider.GetService<IPluginInitializationService>();
+                var assemblyService = KRGPMagicServiceProvider.GetService<IAssemblyService>();
 
-                if (this is IPlugin pluginInterface && pluginInterface.Info != null)
+                if (pathService == null || initService == null || assemblyService == null)
                 {
-                    pluginName = pluginInterface.Info.Name;
-                    pluginVersion = pluginInterface.Info.Version;
-                    pluginDescription = pluginInterface.Info.Description;
+                    TaskDialog.Show("Ошибка", "Сервисы KRGPMagic недоступны");
+                    return Result.Failed;
                 }
 
-                TaskDialog.Show(pluginName, $"Плагин '{pluginName}' (v{pluginVersion}) успешно выполнен!");
+                // Получаем информацию о плагине
+                string pluginName = Info?.DisplayName ?? "Sample Plugin";
+                string pluginDataPath = pathService.GetPluginUserDataPath(Info?.Name ?? "SamplePlugin");
+                string pluginStatus = initService.GetPluginStatus(Info?.Name ?? "SamplePlugin");
+
+                // Формируем сообщение с информацией
+                var infoMessage = $"Плагин: {pluginName}\n" +
+                                 $"Статус: {pluginStatus}\n" +
+                                 $"Папка данных: {pluginDataPath}\n" +
+                                 $"Доступные сборки KRGP: {string.Join(", ", assemblyService.GetAvailableKRGPAssemblies())}";
+
+                TaskDialog.Show("Информация о плагине", infoMessage);
+
                 return Result.Succeeded;
             }
             catch (Exception ex)

@@ -56,6 +56,13 @@
     <Compile Include="KRGPMagic.Entry\KRGPMagicApplication.cs" />
     <Compile Include="KRGPMagic.Core\Interfaces\IPlugin.cs" />
     <Compile Include="KRGPMagic.Core\Models\PluginConfiguration.cs" />
+    <Compile Include="KRGPMagic.Services\AssemblyService.cs" />
+    <Compile Include="KRGPMagic.Services\IAssemblyService.cs" />
+    <Compile Include="KRGPMagic.Services\IPathService.cs" />
+    <Compile Include="KRGPMagic.Services\IPluginInitializationService.cs" />
+    <Compile Include="KRGPMagic.Services\KRGPMagicServiceProvider.cs" />
+    <Compile Include="KRGPMagic.Services\PathService.cs" />
+    <Compile Include="KRGPMagic.Services\PluginInitializationService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="KRGPMagic.Services\IConfigurationReader.cs" />
     <Compile Include="KRGPMagic.Services\IPluginLoader.cs" />

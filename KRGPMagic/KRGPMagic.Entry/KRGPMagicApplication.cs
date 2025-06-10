@@ -1,4 +1,5 @@
 ﻿using Autodesk.Revit.UI;
+using KRGPMagic.Core.Services;
 using KRGPMagic.Services;
 using System;
 using System.IO;
@@ -6,17 +7,9 @@ using System.Reflection;
 
 namespace KRGPMagic.Entry
 {
-    /*
-     * KRGPMagic — это система централизованного управления пользовательскими плагинами 
-     * и их группировкой на ленте Autodesk Revit через конфигурационный XML-файл. 
-     * Включает визуальный редактор 
-     * и поддерживает .NET Framework 4.8, C# 7.3 и современные версии Revit.
-     * Версия V0.9
-     * Разработчик Дементьев Максим, май 2025
-     * */
     /// <summary>
     /// Главный класс приложения, точка входа для системы плагинов KRGPMagic в Revit.
-    /// Отвечает за инициализацию менеджера плагинов и создание UI для них.
+    /// Отвечает за инициализацию менеджера плагинов, регистрацию сервисов и создание UI для них.
     /// </summary>
     public class KRGPMagicApplication : IExternalApplication
     {
@@ -49,7 +42,7 @@ namespace KRGPMagic.Entry
                 _basePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 KRGPMagicBasePath = _basePath;
 
-                InitializeServices();
+                InitializeServices(application);
                 LoadPluginsAndCreateUI(application);
 
                 return Result.Succeeded;
@@ -71,6 +64,7 @@ namespace KRGPMagic.Entry
             try
             {
                 _pluginManager?.ShutdownPlugins();
+                KRGPMagicServiceProvider.ClearAllServices();
                 return Result.Succeeded;
             }
             catch (Exception ex)
@@ -85,13 +79,34 @@ namespace KRGPMagic.Entry
         #region Private Methods
 
         /// <summary>
-        /// Создает экземпляры сервисов, необходимых для работы системы.
+        /// Инициализирует и регистрирует все сервисы системы KRGPMagic.
         /// </summary>
-        private void InitializeServices()
+        /// <param name="application">Контролируемое приложение Revit UI.</param>
+        private void InitializeServices(UIControlledApplication application)
         {
+            // Определяем версию Revit
+            var revitVersion = "2022";
+
+            // Создаем и регистрируем базовые сервисы
+            var pathService = new PathService(revitVersion);
+            KRGPMagicServiceProvider.RegisterService<IPathService>(pathService);
+
+            var assemblyService = new AssemblyService(pathService);
+            KRGPMagicServiceProvider.RegisterService<IAssemblyService>(assemblyService);
+
+            var initializationService = new PluginInitializationService(pathService, assemblyService);
+            KRGPMagicServiceProvider.RegisterService<IPluginInitializationService>(initializationService);
+
+            // Создаем менеджер плагинов с зависимостями
             var configurationReader = new XmlConfigurationReader();
             var pluginLoader = new ReflectionPluginLoader();
             _pluginManager = new PluginManager(configurationReader, pluginLoader);
+
+            // Валидируем окружение
+            if (!initializationService.ValidateEnvironment())
+            {
+                TaskDialog.Show("KRGPMagic Warning", "Обнаружены проблемы с окружением. Некоторые функции могут работать некорректно.");
+            }
         }
 
         /// <summary>
